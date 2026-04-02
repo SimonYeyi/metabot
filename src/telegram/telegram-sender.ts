@@ -418,12 +418,14 @@ export class TelegramSender implements IMessageSender {
     }
   }
 
-  async sendText(chatId: string, text: string): Promise<void> {
+  async sendText(chatId: string, text: string): Promise<string | undefined> {
     try {
       const truncated = truncateMessage(text);
-      await this.bot.api.sendMessage(Number(chatId), truncated);
+      const msg = await this.bot.api.sendMessage(Number(chatId), truncated);
+      return String(msg.message_id); // Return Telegram message_id
     } catch (err) {
       this.logger.error({ err, chatId }, 'Failed to send Telegram text');
+      return undefined;
     }
   }
 

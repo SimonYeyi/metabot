@@ -24,7 +24,7 @@ export class FeishuSenderAdapter implements IMessageSender {
     await this.sender.sendCard(chatId, buildTextCard(title, content, color));
   }
 
-  async sendText(chatId: string, text: string): Promise<void> {
+  async sendText(chatId: string, text: string): Promise<string | undefined> {
     return this.sender.sendText(chatId, text);
   }
 
@@ -44,5 +44,9 @@ export class FeishuSenderAdapter implements IMessageSender {
 
   async downloadFile(messageId: string, fileKey: string, savePath: string): Promise<boolean> {
     return this.sender.downloadFile(messageId, fileKey, savePath);
+  }
+
+  async sendUrgentApp(messageId: string, userIdList: string[]): Promise<void> {
+    return this.sender.sendUrgentApp(messageId, userIdList);
   }
 }

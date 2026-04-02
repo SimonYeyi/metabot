@@ -794,7 +794,7 @@ export class MessageBridge {
       this.recordSession(chatId, displayPrompt, lastState.responseText, processor.getSessionId(), lastState.costUsd, durationMs);
 
       // Send completion notification for long-running tasks (>10s) so user gets a Feishu push
-      await this.sendCompletionNotice(chatId, lastState, durationMs);
+      await this.sendCompletionNotice(chatId, lastState, durationMs, userId);
 
       // Send any output files produced by Claude
       await this.outputHandler.sendOutputFiles(chatId, outputsDir, processor, lastState);
@@ -839,7 +839,7 @@ export class MessageBridge {
           metrics.incCounter('metabot_tasks_by_status', lastState.status === 'complete' ? 'success' : 'error');
 
           this.recordSession(chatId, displayPrompt, lastState.responseText, processor.getSessionId(), lastState.costUsd, durationMs);
-          await this.sendCompletionNotice(chatId, lastState, durationMs);
+          await this.sendCompletionNotice(chatId, lastState, durationMs, userId);
           await this.outputHandler.sendOutputFiles(chatId, outputsDir, processor, lastState);
           return; // skip the normal error handling below
         } catch (retryErr: any) {
@@ -1292,7 +1292,7 @@ export class MessageBridge {
     }
   }
 
-  private async sendCompletionNotice(chatId: string, state: CardState, durationMs: number): Promise<void> {
+  private async sendCompletionNotice(chatId: string, state: CardState, durationMs: number, userId?: string): Promise<void> {
     // Some senders (WeChat) already send the final response as a standalone message, so skip
     if (this.sender.skipCompletionNotice) return;
     // Only notify for tasks that took a while — quick tasks don't need it
@@ -1329,7 +1329,10 @@ export class MessageBridge {
     const message = `${statusEmoji} ${statusWord} (${durationStr}${costStr}${modelStr}${usageStr})`;
 
     try {
-      await this.sender.sendText(chatId, message);
+      const messageId = await this.sender.sendText(chatId, message);
+      if (messageId && userId) {
+        await this.sender.sendUrgentApp?.(messageId, [userId]);
+      }
     } catch (err) {
       this.logger.warn({ err, chatId }, 'Failed to send completion notice');
     }

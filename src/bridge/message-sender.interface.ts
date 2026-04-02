@@ -14,8 +14,8 @@ export interface IMessageSender {
   /** Send a simple notice message (for command responses: /help, /reset, /stop, etc.). */
   sendTextNotice(chatId: string, title: string, content: string, color?: string): Promise<void>;
 
-  /** Send a plain text message. */
-  sendText(chatId: string, text: string): Promise<void>;
+  /** Send a plain text message. Returns messageId for subsequent updates (e.g. urgent). */
+  sendText(chatId: string, text: string): Promise<string | undefined>;
 
   /** Send a local image file to the chat. */
   sendImageFile(chatId: string, filePath: string): Promise<boolean>;
@@ -31,4 +31,7 @@ export interface IMessageSender {
 
   /** If true, the bridge will not send a separate "Task completed" text after the card update. */
   skipCompletionNotice?: boolean;
+
+  /** Send in-app urgent reminder for a message (Feishu only). No-op on other platforms. */
+  sendUrgentApp?(messageId: string, userIdList: string[]): Promise<void>;
 }

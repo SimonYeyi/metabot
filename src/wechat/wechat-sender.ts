@@ -90,14 +90,16 @@ export class WechatSender implements IMessageSender {
     await this.sendText(chatId, text);
   }
 
-  async sendText(chatId: string, text: string): Promise<void> {
+  async sendText(chatId: string, text: string): Promise<string | undefined> {
     try {
       const chunks = splitLongText(text, MAX_TEXT_LENGTH);
       for (const chunk of chunks) {
         await this.client.sendTextMessage(chatId, chunk);
       }
+      return undefined; // WeChat doesn't support message_id for urgent
     } catch (err) {
       this.logger.error({ err, chatId }, 'Failed to send WeChat text');
+      return undefined;
     }
   }
 

@@ -178,9 +178,9 @@ export class MessageSender {
     }
   }
 
-  async sendText(chatId: string, text: string): Promise<void> {
+  async sendText(chatId: string, text: string): Promise<string | undefined> {
     try {
-      await this.client.im.v1.message.create({
+      const resp = await this.client.im.v1.message.create({
         params: { receive_id_type: 'chat_id' },
         data: {
           receive_id: chatId,
@@ -188,8 +188,30 @@ export class MessageSender {
           msg_type: 'text',
         },
       });
+      return resp?.data?.message_id;
     } catch (err) {
       this.logger.error({ err, chatId }, 'Failed to send text');
+      return undefined;
     }
   }
+
+  /**
+   * Send an in-app urgent reminder for a message.
+   * @param messageId The message ID sent by this bot (required for urgent)
+   * @param userIdList Array of user IDs to notify
+   */
+  async sendUrgentApp(messageId: string, userIdList: string[]): Promise<void> {
+    if (!userIdList.length) return;
+    try {
+      await this.client.im.v1.message.urgentApp({
+        path: { message_id: messageId },
+        data: { user_id_list: userIdList },
+        params: { user_id_type: 'open_id' },
+      });
+      this.logger.info({ messageId, userIdList }, 'Sent urgent app notification');
+    } catch (err) {
+      this.logger.error({ err, messageId }, 'Failed to send urgent app notification');
+    }
+  }
+
 }
