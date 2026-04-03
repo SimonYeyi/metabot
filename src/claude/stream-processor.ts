@@ -19,6 +19,8 @@ export interface DetectedTool {
 export class StreamProcessor {
   private responseText = '';
   private toolCalls: ToolCall[] = [];
+  private stepCounter = 0;
+  private lastBlockType: string | null = null;
   private currentToolName: string | null = null;
   private sessionId: string | undefined;
   private costUsd: number | undefined;
@@ -83,13 +85,13 @@ export class StreamProcessor {
 
     for (const block of message.message.content) {
       if (block.type === 'text' && block.text) {
-        // Only accumulate text from top-level assistant messages (not subagent)
+        // Only process tool detection here; text is accumulated by processStreamEvent
         if (message.parent_tool_use_id === null || message.parent_tool_use_id === undefined) {
-          // Full message text replaces accumulated stream text
-          this.responseText = block.text;
+          this.lastBlockType = 'text';
         }
       } else if (block.type === 'tool_use' && block.name) {
         this.addToolCall(block.name, block.input);
+        this.lastBlockType = 'tool_use';
         // Detect interactive tools at top level
         if (message.parent_tool_use_id === null || message.parent_tool_use_id === undefined) {
           if (block.name === 'AskUserQuestion' && block.id && block.input) {
@@ -117,18 +119,37 @@ export class StreamProcessor {
       const block = event.content_block;
       if (block?.type === 'tool_use' && block.name) {
         this.addToolCall(block.name, undefined);
+        this.lastBlockType = 'tool_use';
       }
       if (block?.type === 'text') {
-        // Reset for new text block
+        // Mark that we're starting a new text block (will check for sub-step on first delta)
+        this.lastBlockType = 'text_start';
       }
     } else if (event.type === 'content_block_delta') {
       const delta = event.delta;
       if (delta?.type === 'text_delta' && delta.text) {
-        this.responseText += delta.text;
+        // Check if this is the first delta of a new step
+        if (this.lastBlockType === 'text_start') {
+          // Check if this is a sub-step (numbered list like "1.", "2.") - don't add step marker
+          const isSubStep = /^\d+[.)]/.test(delta.text);
+          if (isSubStep) {
+            // Sub-step: add newline after step marker, then append
+            this.responseText += '\n' + delta.text;
+          } else {
+            // New step
+            if (this.responseText.length > 0) {
+              this.responseText += '\n---\n';
+            }
+            this.stepCounter++;
+            this.responseText += `▶ **Step ${this.stepCounter}:** ` + delta.text;
+          }
+          this.lastBlockType = 'text';
+        } else {
+          this.responseText += delta.text;
+        }
       }
     } else if (event.type === 'content_block_stop') {
       // Tool may be complete
-      // Actual completion is tracked via assistant messages
     }
   }
 
@@ -161,7 +182,10 @@ export class StreamProcessor {
       tool.status = 'done';
     }
 
-    const resultText = message.result || this.responseText;
+    // If steps already contain the result, don't append it again
+    const resultText = message.result && this.responseText && !this.responseText.includes(message.result)
+      ? this.responseText + '\n---\n' + message.result
+      : this.responseText || message.result || '';
     const isError = message.subtype !== 'success';
     // SDK sometimes wraps API errors as "success" with the error text as result
     const isApiError = !isError && isApiErrorResult(resultText);

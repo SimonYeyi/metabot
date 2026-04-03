@@ -34,7 +34,7 @@ describe('StreamProcessor', () => {
       parent_tool_use_id: null,
       event: { type: 'content_block_delta', delta: { type: 'text_delta', text: 'Hello world' } },
     }));
-    expect(state.responseText).toBe('Hello world');
+    expect(state.responseText).toBe('▶ **Step 1:** Hello world');
     expect(state.status).toBe('running');
   });
 
