@@ -349,6 +349,8 @@ function formatToolDetail(name: string, input: unknown): string {
       return inp.url ? `\`${truncate(inp.url as string, 60)}\`` : '';
     case 'Task':
       return inp.description ? `${inp.description}` : '';
+    case 'Skill':
+      return inp.skill ? `${inp.skill}` : '';
     case 'AskUserQuestion': {
       const qs = inp.questions;
       if (Array.isArray(qs) && qs.length > 0) {
