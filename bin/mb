@@ -4,16 +4,9 @@
 
 set -euo pipefail
 
-# --- Config: always read .env, then fall back to env vars / defaults ---
-METABOT_ENV="${METABOT_HOME:-$HOME/metabot}/.env"
-if [[ -f "$METABOT_ENV" ]]; then
-  _port=$(sed -n 's/^API_PORT=//p' "$METABOT_ENV" 2>/dev/null || true)
-  _secret=$(sed -n 's/^API_SECRET=//p' "$METABOT_ENV" 2>/dev/null || true)
-  _url=$(sed -n 's/^METABOT_URL=//p' "$METABOT_ENV" 2>/dev/null || true)
-fi
-METABOT_URL="${METABOT_URL:-${_url:-http://localhost:${_port:-9100}}}"
-_secret="${_secret:-${API_SECRET:-changeme}}"
-METABOT_AUTH="Authorization: Bearer $_secret"
+# --- Config: read METABOT_API_PORT and METABOT_API_SECRET (injected by MetaBot spawn) ---
+METABOT_URL="http://localhost:${METABOT_API_PORT:-9100}"
+METABOT_AUTH="Authorization: Bearer ${METABOT_API_SECRET:-changeme}"
 
 _json() { python3 -m json.tool 2>/dev/null || cat; }
 
