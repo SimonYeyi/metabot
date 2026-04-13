@@ -79,6 +79,8 @@ These run inside the current Claude session, with no MetaBot server involvement,
 
 If you need **persistent server-side scheduling** that survives Claude restarts and lives in MetaBot's scheduler (so other bots / your future self can list and cancel them via `mb`), invoke the optional `/metaschedule` skill — it documents the `mb schedule` / `/api/schedule` surface. The skill ships with the MetaBot source tree but is **not installed by default**; copy `src/skills/metaschedule/` into `~/.claude/skills/` (or the bot's `.claude/skills/`) to enable it.
 
+**Important — avoid talking to yourself:** When iterating over bots from `mb bots` to broadcast or talk to all of them, you MUST filter out your own botName (which you know from "You are running as bot 'X'"). If you try to `mb talk` to yourself, you will trigger a self-call loop and get a "busy" error. Instead, if the task requires your own participation, just do it directly — do not use `mb talk` for yourself.
+
 ### API Reference (for complex operations)
 
 For operations not covered by `mb` (creating bots, sendCards option), use the API directly.
