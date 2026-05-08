@@ -93,6 +93,9 @@ export class StreamProcessor {
       toolCalls: [...this.toolCalls],
       costUsd: this.costUsd,
       durationMs: this.durationMs,
+      model: this._model,
+      totalTokens: this._totalTokens,
+      contextWindow: this._contextWindow,
       pendingQuestion: this._pendingQuestions[0] || undefined,
       backgroundEvents: this._backgroundEvents.size > 0
         ? [...this._backgroundEvents.values()]
@@ -408,6 +411,9 @@ export class StreamProcessor {
       toolCalls: [...this.toolCalls],
       costUsd: this.costUsd,
       durationMs: this.durationMs,
+      model: this._model,
+      totalTokens: this._totalTokens,
+      contextWindow: this._contextWindow,
       pendingQuestion: this._pendingQuestions[0] || undefined,
       backgroundEvents: this._backgroundEvents.size > 0
         ? [...this._backgroundEvents.values()]
