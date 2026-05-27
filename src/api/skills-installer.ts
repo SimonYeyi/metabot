@@ -77,7 +77,7 @@ export function installSkillsToWorkDir(workDir: string, logger: Logger, options?
  * Ensure lark-cli is configured with Feishu app credentials.
  * Skips if ~/.lark-cli/config.json already exists.
  */
-function ensureLarkCliConfig(appId: string, appSecret: string, logger: Logger): void {
+export function ensureLarkCliConfig(appId: string, appSecret: string, logger: Logger): void {
   const configPath = path.join(os.homedir(), '.lark-cli', 'config.json');
   if (fs.existsSync(configPath)) {
     logger.debug('lark-cli already configured, skipping');
@@ -92,11 +92,12 @@ function ensureLarkCliConfig(appId: string, appSecret: string, logger: Logger): 
   }
 
   try {
-    execFileSync(larkCliBin, ['config', 'init', '--app-id', appId, '--app-secret-stdin', '--brand', 'feishu'], {
-      input: appSecret,
-      stdio: ['pipe', 'pipe', 'pipe'],
-      timeout: 15_000,
-    });
+    const args = ['profile', 'add', '--name', 'metabot', '--app-id', appId, '--app-secret-stdin', '--brand', 'feishu'];
+    if (process.platform === 'win32') {
+      execSync(`"${larkCliBin}" ${args.join(' ')}`, { input: appSecret, stdio: ['pipe', 'pipe', 'pipe'], timeout: 15_000 });
+    } else {
+      execFileSync(larkCliBin, args, { input: appSecret, stdio: ['pipe', 'pipe', 'pipe'], timeout: 15_000 });
+    }
     logger.info({ appId }, 'lark-cli configured successfully');
   } catch (err: any) {
     logger.warn({ err: err.message }, 'Failed to configure lark-cli — you can run manually: lark-cli config init');
@@ -205,11 +206,12 @@ function findLarkCli(): string | null {
   for (const c of candidates) {
     if (fs.existsSync(c)) return c;
   }
-  // Try PATH via which
+  // Try PATH via where (Windows) or which (Unix)
   try {
-    const result = execFileSync('which', ['lark-cli'], { stdio: ['pipe', 'pipe', 'pipe'], timeout: 5_000 });
-    const p = result.toString().trim();
-    if (p) return p;
+    const cmd = process.platform === 'win32' ? 'where' : 'which';
+    const result = execFileSync(cmd, ['lark-cli'], { stdio: ['pipe', 'pipe', 'pipe'], timeout: 5_000 });
+    const p = result.toString().replace(/\r/g, '').trim().split('\n')[0];
+    return p;
   } catch { /* not in PATH */ }
   return null;
 }

@@ -18,6 +18,7 @@ import { startApiServer } from './api/http-server.js';
 import { startMemoryServer } from './memory/memory-server.js';
 import { DocSync } from './sync/doc-sync.js';
 import { MemoryClient } from './memory/memory-client.js';
+import { ensureLarkCliConfig } from './api/skills-installer.js';
 
 import { SessionRegistry } from './session/session-registry.js';
 
@@ -34,6 +35,9 @@ async function startFeishuBot(botConfig: BotConfig, logger: Logger, memoryServer
   const botLogger = logger.child({ bot: botConfig.name });
 
   botLogger.info('Starting Feishu bot...');
+
+  // Ensure lark-cli is configured with Feishu app credentials
+  ensureLarkCliConfig(botConfig.feishu.appId, botConfig.feishu.appSecret, botLogger);
 
   // Create Feishu API client
   const client = new lark.Client({
