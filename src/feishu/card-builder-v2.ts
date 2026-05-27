@@ -192,7 +192,7 @@ export function buildCardV2(state: CardState): string {
     const total = state.toolCalls.length;
     elements.push({
       tag:     'markdown',
-      content: `${icon} **${last.name}** · ${total} tool${total > 1 ? 's' : ''}`,
+      content: `${icon} **${last.name}** (${last.detail}) · ${total} tool${total > 1 ? 's' : ''}`,
     });
     elements.push({ tag: 'hr' });
   }
