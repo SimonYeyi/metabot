@@ -5,6 +5,7 @@ import { MessageSender } from './message-sender.js';
 import { buildCard, buildTextCard } from './card-builder.js';
 import { buildCardV2, buildTextCardV2 } from './card-builder-v2.js';
 import { OutputsManager } from '../bridge/outputs-manager.js';
+import { replaceLocalImagesWithKeys, processImagesForStreaming } from './image-processor.js';
 
 // v2 (native table + lark_md headings + grey footer) is the default.
 // Set CARD_SCHEMA_V2=false to opt out and fall back to v1.
@@ -17,12 +18,37 @@ const USE_V2 = process.env.CARD_SCHEMA_V2 !== 'false';
 export class FeishuSenderAdapter implements IMessageSender {
   constructor(private sender: MessageSender) {}
 
+  private async processCardState(state: CardState): Promise<CardState> {
+    if (!state.responseText) {
+      return state;
+    }
+
+    // During streaming: remove ALL local image paths to avoid Feishu API errors
+    if (state.status !== 'complete') {
+      const processedText = processImagesForStreaming(state.responseText);
+      return { ...state, responseText: processedText };
+    }
+
+    // On completion: upload images and replace with image_key
+    const processedText = await replaceLocalImagesWithKeys(
+      state.responseText,
+      this.sender,
+    );
+
+    return {
+      ...state,
+      responseText: processedText,
+    };
+  }
+
   async sendCard(chatId: string, state: CardState): Promise<string | undefined> {
-    return this.sender.sendCard(chatId, USE_V2 ? buildCardV2(state) : buildCard(state));
+    const processedState = await this.processCardState(state);
+    return this.sender.sendCard(chatId, USE_V2 ? buildCardV2(processedState) : buildCard(processedState));
   }
 
   async updateCard(messageId: string, state: CardState): Promise<boolean> {
-    return this.sender.updateCard(messageId, USE_V2 ? buildCardV2(state) : buildCard(state));
+    const processedState = await this.processCardState(state);
+    return this.sender.updateCard(messageId, USE_V2 ? buildCardV2(processedState) : buildCard(processedState));
   }
 
   /**

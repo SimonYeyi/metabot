@@ -43,6 +43,13 @@ export class OutputHandler {
     processor: StreamProcessor,
     state: CardState,
   ): Promise<void> {
+    // Skip image sending for Feishu — images are already embedded in card via Adapter
+    // Check by constructor name to avoid importing FeishuSenderAdapter
+    if ((this.sender as any).constructor?.name === 'FeishuSenderAdapter') {
+      this.logger.info({ chatId }, 'Skipping output file sending for Feishu (images handled by Adapter)');
+      return;
+    }
+
     const sentPaths = new Set<string>();
     const oversized: OversizedFile[] = [];
 
